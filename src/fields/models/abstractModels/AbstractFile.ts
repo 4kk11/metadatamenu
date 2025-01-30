@@ -1,5 +1,5 @@
 import MetadataMenu from "main"
-import { ButtonComponent, Notice, TFile, TextAreaComponent, setIcon } from "obsidian"
+import { ButtonComponent, FuzzyMatch, Notice, TFile, TextAreaComponent, setIcon } from "obsidian"
 import { getExistingFieldForIndexedPath } from "src/fields/ExistingField"
 import { ActionLocation, IField, IFieldManager, Target, fieldValueManager, getOptions, isFieldActions, isSingleTargeted, isSuggest, removeValidationError } from "src/fields/Field"
 import { getIcon } from "src/fields/Fields"
@@ -125,7 +125,17 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
             inputContainer.appendChild(this.inputEl)
             this.containerEl.find(".prompt").prepend(inputContainer)
             this.containerEl.createDiv({ cls: "footer-actions" })
+            this.buildAddButton(inputContainer)
             cleanActions(this.containerEl, ".footer-actions")
+        }
+        getSuggestions(query: string): FuzzyMatch<TFile>[] {
+            const values = super.getSuggestions(query);
+            if (this.addButton) {
+                (values.some(p => p.item.basename === query) || !query) ? 
+                    this.addButton.buttonEl.hide() : 
+                    this.addButton.buttonEl.show();
+            };
+            return values;
         }
         getItems(): TFile[] {
             return getFiles(this.managedField)
@@ -138,6 +148,18 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
         }
         onClose(): void {
             this.managedField.previousModal?.open()
+        }
+        async onAdd(): Promise<void> {
+            throw Error("This class has to implement an onAdd method")
+        }
+        buildAddButton(container: HTMLDivElement) {
+            // addButton
+            this.addButton = new ButtonComponent(container)
+            this.addButton.setIcon("plus")
+            this.addButton.onClick(async () => await this.onAdd())
+            this.addButton.setCta();
+            this.addButton.setTooltip("Add this value to this field settings")
+            this.addButton.buttonEl.hide();
         }
     }
 }
