@@ -193,7 +193,11 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
                 // Add the new file to selected files
                 if (newFile instanceof TFile) {
                     this.selectedFiles.push(newFile);
-                    // this.renderSelected();
+                    this.renderSelected();
+                    // await this.save();
+                    // clear input
+                    this.inputEl.value = "";
+                    this.inputEl.trigger("input");
                 }
             } catch (error) {
                 console.error("Failed to create new file:", error);
