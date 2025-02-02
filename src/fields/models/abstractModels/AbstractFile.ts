@@ -1,11 +1,12 @@
 import MetadataMenu from "main"
-import { ButtonComponent, FuzzyMatch, Notice, TFile, TextAreaComponent, setIcon } from "obsidian"
+import { ButtonComponent, FuzzyMatch, Notice, Setting, TFile, TextAreaComponent, ToggleComponent, setIcon } from "obsidian"
 import { getExistingFieldForIndexedPath } from "src/fields/ExistingField"
 import { ActionLocation, IField, IFieldManager, Target, fieldValueManager, getOptions, isFieldActions, isSingleTargeted, isSuggest, removeValidationError } from "src/fields/Field"
 import { getIcon } from "src/fields/Fields"
 import { BaseOptions, IFieldBase } from "src/fields/base/BaseField"
 import { IBaseValueModal, basicFuzzySuggestModal } from "src/fields/base/BaseModal"
 import { ISettingsModal } from "src/fields/base/BaseSetting"
+import { FolderSuggest } from "src/suggester/FolderSuggester"
 import { Link } from "src/types/dataviewTypes"
 import { Constructor, DataviewApi } from "src/typings/types"
 import { displayLinksOrText, getLinksOrTextString } from "src/utils/linksUtils"
@@ -22,6 +23,8 @@ export interface Options extends BaseOptions {
     dvQueryString?: string
     customRendering?: string
     customSorting?: string
+    isNewFileAllowed?: boolean
+    customFileDirectory?: string
 }
 export interface DefaultedOptions extends Options { }
 
@@ -38,6 +41,7 @@ export function settingsModal(Base: Constructor<ISettingsModal<DefaultedOptions>
             this.createQueryContainer(this.optionsContainer)
             this.createCustomRenderingContainer(this.optionsContainer)
             this.createCustomSortingContainer(this.optionsContainer)
+            this.createIsNewFileAllowedContainer(this.optionsContainer)
         }
 
         validateOptions(): boolean {
@@ -103,6 +107,39 @@ export function settingsModal(Base: Constructor<ISettingsModal<DefaultedOptions>
                 removeValidationError(customSorting);
             })
         }
+
+        private createIsNewFileAllowedContainer(container: HTMLDivElement): void {
+            // create container
+            const newFileAllowedTopContainer = container.createDiv({ cls: "field-container" });
+            const dvQueryStringTopContainer = container.createDiv({ cls: "vstacked" });
+            // label
+            newFileAllowedTopContainer.createDiv({ text: "Create file if it does not exist", cls: "label" });
+            newFileAllowedTopContainer.createDiv({ cls: "spacer" });
+            // toggle
+            const newFileAllowedToggler = new ToggleComponent(newFileAllowedTopContainer);
+            newFileAllowedToggler.setValue(this.field.options.isNewFileAllowed || false);
+            newFileAllowedToggler.onChange(value => {
+                this.field.options.isNewFileAllowed = value;
+                value ? dvQueryStringTopContainer.show() : dvQueryStringTopContainer.hide();
+            });
+            // dv query string
+            const dvQueryStringContainer = dvQueryStringTopContainer.createDiv({ cls: "field-container" });
+            this.field.options.isNewFileAllowed ? dvQueryStringTopContainer.show() : dvQueryStringTopContainer.hide();
+            const filePathSetting = new Setting(dvQueryStringContainer)
+                .setName("Path to create the file")
+                .setDesc("Dataview query to get the path where the file should be created")
+                .addSearch((component) => {
+                    new FolderSuggest(this.plugin, component.inputEl);
+                    component.setPlaceholder("Folder")
+                        .setValue(this.field.options.customFileDirectory || "")
+                        .onChange((value) => {
+                            this.field.options.customFileDirectory = value;
+                            removeValidationError(component);
+                        })
+                });
+            
+
+        }
     }
 }
 
@@ -130,7 +167,7 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
         }
         getSuggestions(query: string): FuzzyMatch<TFile>[] {
             const values = super.getSuggestions(query);
-            if (this.addButton) {
+            if (this.addButton && this.managedField.options.isNewFileAllowed) {
                 (values.some(p => p.item.basename === query) || !query) ? 
                     this.addButton.buttonEl.hide() : 
                     this.addButton.buttonEl.show();

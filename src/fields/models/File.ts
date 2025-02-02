@@ -73,7 +73,8 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
         async onAdd(): Promise<void> {
             const vault = this.managedField.plugin.app.vault;
             const newFileName = this.inputEl.value;
-            const filePath = `/${newFileName}.md`;
+            const targetDirectory = this.managedField.options.customFileDirectory ?? "";
+            const filePath = `${targetDirectory}/${newFileName}.md`;
             
             try {
                 // Create new file
