@@ -142,6 +142,7 @@ declare module "obsidian" {
                     }
                 };
             };
+            getPlugin: (plugin: string) => Plugin;
         };
         internalPlugins: {
             plugins: InternalPlugins;
@@ -149,7 +150,7 @@ declare module "obsidian" {
         };
         statusBar: {
             containerEl: HTMLDivElement;
-        }
+        };
     }
     interface DataAdapter {
         basePath: string

@@ -190,6 +190,13 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
                 // Create new file
                 const newFile = await vault.create(filePath, "");
                 
+                // apply template
+                const insertText = await this.applyTemplate("_templates/template_01.md", filePath);
+                console.log("Template applied:", insertText);
+
+                // write to file
+                await vault.modify(newFile, insertText);
+
                 // Add the new file to selected files
                 if (newFile instanceof TFile) {
                     this.selectedFiles.push(newFile);
@@ -203,6 +210,46 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
                 }
             } catch (error) {
                 console.error("Failed to create new file:", error);
+            }
+        }
+
+        async applyTemplate(templateFilePath: string, targetFilePath: string): Promise<any> {
+            const templaterPlugin: any = this.app.plugins.getPlugin("templater-obsidian");
+            if (templaterPlugin) {
+                console.log("Applying template:", templateFilePath, "to:", targetFilePath);
+                const templaterAPI = templaterPlugin.templater;
+                
+                const templateFile = this.app.vault.getAbstractFileByPath(templateFilePath);
+                if (!templateFile || !(templateFile instanceof TFile)) {
+                    console.log(`Template file not found: ${templateFilePath}`);
+                    throw new Error(`Template file not found: ${templateFilePath}`);
+                }
+
+                const targetFile = this.app.vault.getAbstractFileByPath(targetFilePath);
+                if (!targetFile || !(targetFile instanceof TFile)) {
+                    console.log(`Target file not found: ${targetFilePath}`);
+                    throw new Error(`Target file not found: ${targetFilePath}`);
+                }
+                
+                enum Templater_RunMode {
+                    CreateNewFromTemplate,
+                    AppendActiveFile,
+                    OverwriteFile,
+                    OverwriteActiveFile,
+                    DynamicProcessor,
+                    StartupTemplate,
+                }
+
+                const runningConfig = templaterAPI.create_running_config(
+                    templateFile,
+                    targetFile,
+                    Templater_RunMode.DynamicProcessor,
+                );
+
+                console.log("Running config:", runningConfig);
+                
+                return await templaterAPI.read_and_parse_template(runningConfig);
+                
             }
         }
     }
