@@ -180,6 +180,76 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
         async onChooseItem(item: TFile): Promise<void> {
 
         }
+
+        async onAdd(): Promise<void> {
+            const vault = this.managedField.plugin.app.vault;
+            const newFileName = this.inputEl.value;
+            const targetDirectory = this.managedField.options.customFileDirectory ?? "";
+            const filePath = `${targetDirectory}/${newFileName}.md`;
+            try {
+                // Create new file
+                const newFile = await vault.create(filePath, "");
+                
+                // apply template
+                const templateFilePath = managedField.options.templateFilePath;
+                if (this.app.plugins.enabledPlugins.has("templater-obsidian") && templateFilePath) {
+                    const insertText = await this.applyTemplate(templateFilePath, filePath);    
+                    // modify the new file
+                    await vault.modify(newFile, insertText);
+                }
+
+                // Add the new file to selected files
+                if (newFile instanceof TFile) {
+                    this.selectedFiles.push(newFile);
+                    this.renderSelected();
+                    // clear input
+                    this.inputEl.value = "";
+                    // Wait a little before firing the input event to 
+                    // allow dataview to recognize the new file
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                    this.inputEl.trigger("input");
+                }
+            } catch (error) {
+                console.error("Failed to create new file:", error);
+            }
+        }
+
+        async applyTemplate(templateFilePath: string, targetFilePath: string): Promise<any> {
+            const templaterPlugin: any = this.app.plugins.getPlugin("templater-obsidian");
+            if (templaterPlugin) {
+                const templaterAPI = templaterPlugin.templater;
+                
+                const templateFile = this.app.vault.getAbstractFileByPath(templateFilePath);
+                if (!templateFile || !(templateFile instanceof TFile)) {
+                    console.log(`Template file not found: ${templateFilePath}`);
+                    throw new Error(`Template file not found: ${templateFilePath}`);
+                }
+
+                const targetFile = this.app.vault.getAbstractFileByPath(targetFilePath);
+                if (!targetFile || !(targetFile instanceof TFile)) {
+                    console.log(`Target file not found: ${targetFilePath}`);
+                    throw new Error(`Target file not found: ${targetFilePath}`);
+                }
+                
+                enum Templater_RunMode {
+                    CreateNewFromTemplate,
+                    AppendActiveFile,
+                    OverwriteFile,
+                    OverwriteActiveFile,
+                    DynamicProcessor,
+                    StartupTemplate,
+                }
+
+                const runningConfig = templaterAPI.create_running_config(
+                    templateFile,
+                    targetFile,
+                    Templater_RunMode.DynamicProcessor,
+                );
+                
+                return await templaterAPI.read_and_parse_template(runningConfig);
+                
+            }
+        }
     }
 }
 
