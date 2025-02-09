@@ -140,20 +140,21 @@ export function settingsModal(Base: Constructor<ISettingsModal<DefaultedOptions>
                         })
                 });
             const templatePathContainer = newFileOptionsContainer.createDiv({ cls: "field-container" });
-            const templaterPlugin: any = this.app.plugins.getPlugin("templater-obsidian");
-            const templatePathSetting = new Setting(templatePathContainer)
-                .setName("Template path")
-                .setDesc("Path to the template file to use")
-                .addSearch((component) => {
-                    new FileSuggest(component.inputEl, this.plugin, templaterPlugin.settings.templates_folder);
-                    component.setPlaceholder("Template")
-                        .setValue(this.field.options.templateFilePath || "")
-                        .onChange((value) => {
-                            this.field.options.templateFilePath = value;
-                            removeValidationError(component);
-                        })
-                });
-
+            if (this.app.plugins.enabledPlugins.has("templater-obsidian")) {
+                const templaterPlugin: any = this.app.plugins.getPlugin("templater-obsidian");
+                const templatePathSetting = new Setting(templatePathContainer)
+                    .setName("Template path")
+                    .setDesc("Path to the template file to use")
+                    .addSearch((component) => {
+                        new FileSuggest(component.inputEl, this.plugin, templaterPlugin.settings.templates_folder);
+                        component.setPlaceholder("Template")
+                            .setValue(this.field.options.templateFilePath || "")
+                            .onChange((value) => {
+                                this.field.options.templateFilePath = value;
+                                removeValidationError(component);
+                            })
+                    });
+            }
         }
     }
 }

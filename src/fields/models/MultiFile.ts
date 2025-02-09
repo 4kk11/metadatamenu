@@ -192,7 +192,7 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
                 
                 // apply template
                 const templateFilePath = managedField.options.templateFilePath;
-                if (templateFilePath) {
+                if (this.app.plugins.enabledPlugins.has("templater-obsidian") && templateFilePath) {
                     const insertText = await this.applyTemplate(templateFilePath, filePath);    
                     // modify the new file
                     await vault.modify(newFile, insertText);
