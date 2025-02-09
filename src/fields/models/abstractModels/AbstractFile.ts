@@ -6,6 +6,7 @@ import { getIcon } from "src/fields/Fields"
 import { BaseOptions, IFieldBase } from "src/fields/base/BaseField"
 import { IBaseValueModal, basicFuzzySuggestModal } from "src/fields/base/BaseModal"
 import { ISettingsModal } from "src/fields/base/BaseSetting"
+import { FileSuggest } from "src/suggester/FileSuggester"
 import { FolderSuggest } from "src/suggester/FolderSuggester"
 import { Link } from "src/types/dataviewTypes"
 import { Constructor, DataviewApi } from "src/typings/types"
@@ -25,6 +26,7 @@ export interface Options extends BaseOptions {
     customSorting?: string
     isNewFileAllowed?: boolean
     customFileDirectory?: string
+    templateFilePath?: string
 }
 export interface DefaultedOptions extends Options { }
 
@@ -111,7 +113,7 @@ export function settingsModal(Base: Constructor<ISettingsModal<DefaultedOptions>
         private createIsNewFileAllowedContainer(container: HTMLDivElement): void {
             // create container
             const newFileAllowedTopContainer = container.createDiv({ cls: "field-container" });
-            const dvQueryStringTopContainer = container.createDiv({ cls: "vstacked" });
+            const newFileOptionsContainer = container.createDiv({ cls: "vstacked" });
             // label
             newFileAllowedTopContainer.createDiv({ text: "Create file if it does not exist", cls: "label" });
             newFileAllowedTopContainer.createDiv({ cls: "spacer" });
@@ -120,12 +122,12 @@ export function settingsModal(Base: Constructor<ISettingsModal<DefaultedOptions>
             newFileAllowedToggler.setValue(this.field.options.isNewFileAllowed || false);
             newFileAllowedToggler.onChange(value => {
                 this.field.options.isNewFileAllowed = value;
-                value ? dvQueryStringTopContainer.show() : dvQueryStringTopContainer.hide();
+                value ? newFileOptionsContainer.show() : newFileOptionsContainer.hide();
             });
-            // dv query string
-            const dvQueryStringContainer = dvQueryStringTopContainer.createDiv({ cls: "field-container" });
-            this.field.options.isNewFileAllowed ? dvQueryStringTopContainer.show() : dvQueryStringTopContainer.hide();
-            const filePathSetting = new Setting(dvQueryStringContainer)
+            this.field.options.isNewFileAllowed ? newFileOptionsContainer.show() : newFileOptionsContainer.hide();
+            // options
+            const fileDirectoryContainer = newFileOptionsContainer.createDiv({ cls: "field-container" });
+            const filePathSetting = new Setting(fileDirectoryContainer)
                 .setName("Path to create the file")
                 .setDesc("Dataview query to get the path where the file should be created")
                 .addSearch((component) => {
@@ -137,7 +139,20 @@ export function settingsModal(Base: Constructor<ISettingsModal<DefaultedOptions>
                             removeValidationError(component);
                         })
                 });
-            
+            const templatePathContainer = newFileOptionsContainer.createDiv({ cls: "field-container" });
+            const templaterPlugin: any = this.app.plugins.getPlugin("templater-obsidian");
+            const templatePathSetting = new Setting(templatePathContainer)
+                .setName("Template path")
+                .setDesc("Path to the template file to use")
+                .addSearch((component) => {
+                    new FileSuggest(component.inputEl, this.plugin, templaterPlugin.settings.templates_folder);
+                    component.setPlaceholder("Template")
+                        .setValue(this.field.options.templateFilePath || "")
+                        .onChange((value) => {
+                            this.field.options.templateFilePath = value;
+                            removeValidationError(component);
+                        })
+                });
 
         }
     }

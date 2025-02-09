@@ -191,11 +191,12 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
                 const newFile = await vault.create(filePath, "");
                 
                 // apply template
-                const insertText = await this.applyTemplate("_templates/template_01.md", filePath);
-                console.log("Template applied:", insertText);
-
-                // write to file
-                await vault.modify(newFile, insertText);
+                const templateFilePath = managedField.options.templateFilePath;
+                if (templateFilePath) {
+                    const insertText = await this.applyTemplate(templateFilePath, filePath);    
+                    // modify the new file
+                    await vault.modify(newFile, insertText);
+                }
 
                 // Add the new file to selected files
                 if (newFile instanceof TFile) {
@@ -216,7 +217,6 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
         async applyTemplate(templateFilePath: string, targetFilePath: string): Promise<any> {
             const templaterPlugin: any = this.app.plugins.getPlugin("templater-obsidian");
             if (templaterPlugin) {
-                console.log("Applying template:", templateFilePath, "to:", targetFilePath);
                 const templaterAPI = templaterPlugin.templater;
                 
                 const templateFile = this.app.vault.getAbstractFileByPath(templateFilePath);
@@ -245,8 +245,6 @@ export function valueModal(managedField: IFieldManager<Target, Options>, plugin:
                     targetFile,
                     Templater_RunMode.DynamicProcessor,
                 );
-
-                console.log("Running config:", runningConfig);
                 
                 return await templaterAPI.read_and_parse_template(runningConfig);
                 
